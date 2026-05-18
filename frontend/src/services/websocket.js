@@ -1,4 +1,4 @@
-const WS_BASE = "ws://localhost:8080/ws";
+const WS_BASE = `ws://${window.location.hostname}:8080/ws`;
 
 // connexion WebSocket pour le jeu
 export const connectGame = (gameId, playerId, onMessage) => {

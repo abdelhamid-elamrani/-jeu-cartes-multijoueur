@@ -27,7 +27,7 @@ public class GameStateDTO {
         this.status = game.getStatus();
         this.direction = game.getDirection();
         this.currentColor = game.getCurrentColor();
-        this.currentPlayer = new PlayerDTO(game.getCurrentPlayer());
+        this.currentPlayer = game.getCurrentPlayer() != null ? new PlayerDTO(game.getCurrentPlayer()) : null;
 
         // main du joueur connecté
         this.hand = playerHand.stream().map(card -> new CardDTO(card)).collect(Collectors.toList());

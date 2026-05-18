@@ -59,17 +59,16 @@ public class GameEndpoint {
     // un joueur se connecte au WebSocket
     @OnOpen
     public void onOpen(Session session, @PathParam("gameId") Long gameId, @PathParam("playerId") Long playerId) throws IOException {
-        // ajouter la session dans la map
-        gameSessions.computeIfAbsent(gameId, k -> ConcurrentHashMap.newKeySet())
-                .add(session);
-
-        // stocker gameId et playerId dans la session pour les retrouver plus tard
+        Set<Session> sessions = gameSessions.computeIfAbsent(gameId, k -> ConcurrentHashMap.newKeySet());
+        // Nettoyer les sessions mortes du même joueur
+        sessions.removeIf(s -> {
+            Long sid = (Long) s.getUserProperties().get("playerId");
+            return sid != null && sid.equals(playerId) && !s.isOpen();
+        });
+        sessions.add(session);
         session.getUserProperties().put("gameId", gameId);
         session.getUserProperties().put("playerId", playerId);
-
         System.out.println("Joueur " + playerId + " connecté à la partie " + gameId);
-
-        // envoyer l'état actuel de la partie au joueur qui vient de se connecter
         sendGameState(gameId, playerId, session);
     }
 
@@ -121,26 +120,29 @@ public class GameEndpoint {
     @OnError
     public void onError(Session session, Throwable throwable) {
         System.err.println("Erreur WebSocket : " + throwable.getMessage());
+        Long gameId = (Long) session.getUserProperties().get("gameId");
+        if (gameId != null && gameSessions.containsKey(gameId)) {
+            gameSessions.get(gameId).remove(session);
+        }
     }
 
     // envoyer l'état de la partie à tous les joueurs connectés
-    private void broadcastGameState(Long gameId) throws IOException {
+    public static void broadcastGameState(Long gameId) throws IOException {
         Set<Session> sessions = gameSessions.get(gameId);
         if (sessions == null) return;
-
-        for (Session s : sessions) {
+        for (Session s : new HashSet<>(sessions)) {
             if (s.isOpen()) {
                 Long playerId = (Long) s.getUserProperties().get("playerId");
                 sendGameState(gameId, playerId, s);
+            } else {
+                sessions.remove(s);
             }
         }
     }
 
     // envoyer l'état de la partie à un joueur spécifique
-    private void sendGameState(Long gameId, Long playerId, Session session)
-            throws IOException {
+    private static void sendGameState(Long gameId, Long playerId, Session session) {
         try {
-            // construire le GameStateDTO pour ce joueur
             GameStateDTO dto = gameService.getGameState(gameId, playerId);
             String json = objectMapper.writeValueAsString(dto);
             session.getBasicRemote().sendText(json);

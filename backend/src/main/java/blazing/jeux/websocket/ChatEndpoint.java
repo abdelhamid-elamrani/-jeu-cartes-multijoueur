@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -49,14 +50,17 @@ public class ChatEndpoint {
     // un joueur ouvre le chat
     @OnOpen
     public void onOpen(Session session,
-                       @PathParam("gameId") Long gameId,
-                       @PathParam("playerId") Long playerId) {
-        chatSessions.computeIfAbsent(gameId, k -> ConcurrentHashMap.newKeySet())
-                .add(session);
-
+                    @PathParam("gameId") Long gameId,
+                    @PathParam("playerId") Long playerId) {
+        Set<Session> sessions = chatSessions.computeIfAbsent(gameId, k -> ConcurrentHashMap.newKeySet());
+        // Nettoyer les sessions mortes du même joueur
+        sessions.removeIf(s -> {
+            Long sid = (Long) s.getUserProperties().get("playerId");
+            return sid != null && sid.equals(playerId) && !s.isOpen();
+        });
+        sessions.add(session);
         session.getUserProperties().put("gameId", gameId);
         session.getUserProperties().put("playerId", playerId);
-
         System.out.println("Joueur " + playerId + " connecté au chat " + gameId);
     }
 
@@ -105,16 +109,21 @@ public class ChatEndpoint {
     @OnError
     public void onError(Session session, Throwable throwable) {
         System.err.println("Erreur chat WebSocket : " + throwable.getMessage());
+        Long gameId = (Long) session.getUserProperties().get("gameId");
+        if (gameId != null && chatSessions.containsKey(gameId)) {
+            chatSessions.get(gameId).remove(session);
+        }
     }
 
     // envoyer un message à tous les joueurs connectés au chat
     private void broadcast(Long gameId, String message) throws IOException {
         Set<Session> sessions = chatSessions.get(gameId);
         if (sessions == null) return;
-
-        for (Session s : sessions) {
+        for (Session s : new HashSet<>(sessions)) {
             if (s.isOpen()) {
                 s.getBasicRemote().sendText(message);
+            } else {
+                sessions.remove(s);
             }
         }
     }

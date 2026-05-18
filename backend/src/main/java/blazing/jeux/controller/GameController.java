@@ -7,6 +7,8 @@ import blazing.jeux.repositories.*;
 import blazing.jeux.service.GameService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import blazing.jeux.websocket.GameEndpoint;
+import java.io.IOException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,9 +35,10 @@ public class GameController {
 
     // démarrer une partie
     @PostMapping("/{gameId}/start")
-    public String startGame(@PathVariable Long gameId) {
+    public String startGame(@PathVariable Long gameId) throws IOException {
         gameService.startGame(gameId);
-        return "Partie démarrée";
+        GameEndpoint.broadcastGameState(gameId);
+        return "ok";
     }
 
     // état complet de la partie pour un joueur

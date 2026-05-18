@@ -70,10 +70,11 @@ CREATE TABLE game_turn (
 CREATE TABLE message (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     game_id BIGINT NOT NULL,
-    player_id BIGINT NOT NULL,
+    sender_id BIGINT NOT NULL,
     content TEXT NOT NULL,
+    sent_at DATETIME,
     FOREIGN KEY (game_id) REFERENCES game(id),
-    FOREIGN KEY (player_id) REFERENCES player(id)
+    FOREIGN KEY (sender_id) REFERENCES player(id)
 );
 
 -- Table ranking

@@ -203,7 +203,7 @@ export default function GamePage({ gameId, player, onLeave, onLogout }) {
                     {error && <p style={styles.error}>{error}</p>}
 
                     {/* MAIN DU JOUEUR */}
-                    {gameState?.hand && (
+                    {started && gameState?.hand && (
                         <div>
                             <p style={styles.handLabel}>
                                 Votre main ({gameState.hand.length} cartes)

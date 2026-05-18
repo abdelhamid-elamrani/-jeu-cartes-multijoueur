@@ -12,6 +12,7 @@ public class Card {
     private String color;   // ROUGE, BLEU, VERT, JAUNE, NOIR
     private String value;   // 0-9, PASSER, INVERSE, PLUS2, PLUS4, JOKER
 
+    @Column(name = "is_discard")
     private boolean discard; // true si c'est la carte visible sur la défausse
 
     @ManyToOne

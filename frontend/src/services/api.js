@@ -1,4 +1,4 @@
-const BASE = "http://localhost:8080/api";
+const BASE = `http://${window.location.hostname}:8080/api`;
 
 // AUTH
 export const register = (username, password) =>

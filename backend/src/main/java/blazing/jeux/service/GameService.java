@@ -40,12 +40,18 @@ public class GameService {
         Game game = gameRepo.findById(gameId).orElseThrow();
         Player player = playerRepo.findById(playerId).orElseThrow();
         GamePlayer currentGP = gamePlayerRepo.findByGameAndPlayer(game, player).orElseThrow();
+        List<GamePlayer> allPlayers = gamePlayerRepo.findByGame(game);
+
+        // Partie pas encore démarrée : pas de deck, pas de cartes
+        if ("WAITING".equals(game.getStatus())) {
+            return new GameStateDTO(game, List.of(), null, allPlayers, currentGP);
+        }
+
+        // Partie démarrée ou terminée
         List<Card> hand = cardRepo.findByHolder(currentGP);
         Deck deck = deckRepo.findByGame(game).orElseThrow();
         Card topCard = cardRepo.findDefausse(deck).orElse(null);
-        List<GamePlayer> allPlayers = gamePlayerRepo.findByGame(game);
 
-        // recalculer le vrai nombre de cartes de chaque joueur
         for (GamePlayer gp : allPlayers) {
             gp.setHandSize(cardRepo.countByHolder(gp));
         }
