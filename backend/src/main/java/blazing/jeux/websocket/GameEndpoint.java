@@ -108,12 +108,21 @@ public class GameEndpoint {
         Long gameId = (Long) session.getUserProperties().get("gameId");
         Long playerId = (Long) session.getUserProperties().get("playerId");
 
-        // retirer la session de la map
         if (gameSessions.containsKey(gameId)) {
             gameSessions.get(gameId).remove(session);
         }
-
         System.out.println("Joueur " + playerId + " déconnecté de la partie " + gameId);
+
+        // Marquer le joueur comme déconnecté et passer son tour si c'est le sien
+        try {
+            Game game = gameService.getGame(gameId).orElse(null);
+            if (game != null && "IN_PROGRESS".equals(game.getStatus())) {
+                gameService.handlePlayerDisconnect(gameId, playerId);
+                broadcastGameState(gameId);
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur gestion déconnexion : " + e.getMessage());
+        }
     }
 
     // erreur WebSocket

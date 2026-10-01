@@ -32,6 +32,7 @@ CREATE TABLE game_player (
     game_id BIGINT NOT NULL,
     player_id BIGINT NOT NULL,
     hand_size INT DEFAULT 0,
+    connected BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (game_id) REFERENCES game(id),
     FOREIGN KEY (player_id) REFERENCES player(id)
 );

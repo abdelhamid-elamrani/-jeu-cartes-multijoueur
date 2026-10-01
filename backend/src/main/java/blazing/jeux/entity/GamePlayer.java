@@ -21,6 +21,9 @@ public class GamePlayer {
     @OneToMany(mappedBy = "holder")
     private Collection<Card> hand;
 
+    @Column(name = "connected")
+    private boolean connected = true;
+
     private int handSize;
 
     public GamePlayer() {}
@@ -63,5 +66,13 @@ public class GamePlayer {
 
     public void setHandSize(int handSize) { 
         this.handSize = handSize; 
+    }
+
+    public boolean isConnected() { 
+        return connected; 
+    }
+
+    public void setConnected(boolean connected) { 
+        this.connected = connected; 
     }
 }

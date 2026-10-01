@@ -44,6 +44,9 @@ public class GameService {
 
         // Partie pas encore démarrée : pas de deck, pas de cartes
         if ("WAITING".equals(game.getStatus())) {
+            for (GamePlayer gp : allPlayers) {
+                gp.setHandSize(0);
+            }
             return new GameStateDTO(game, List.of(), null, allPlayers, currentGP);
         }
 
@@ -57,6 +60,51 @@ public class GameService {
         }
 
         return new GameStateDTO(game, hand, topCard, allPlayers, currentGP);
+    }
+
+    public void handlePlayerDisconnect(Long gameId, Long playerId) {
+        Game game = gameRepo.findById(gameId).orElseThrow();
+        Player player = playerRepo.findById(playerId).orElseThrow();
+        GamePlayer gp = gamePlayerRepo.findByGameAndPlayer(game, player).orElseThrow();
+
+        // Marquer le joueur comme déconnecté
+        gp.setConnected(false);
+        gamePlayerRepo.save(gp);
+
+        // Compter les joueurs encore connectés
+        List<GamePlayer> allPlayers = gamePlayerRepo.findByGame(game);
+        long connectedCount = allPlayers.stream().filter(GamePlayer::isConnected).count();
+
+        // Si un seul joueur reste, il gagne automatiquement
+        if (connectedCount == 1) {
+            GamePlayer winner = allPlayers.stream().filter(GamePlayer::isConnected).findFirst().orElse(null);
+            if (winner != null) {
+                game.setStatus("FINISHED");
+                game.setWinner(winner.getPlayer().getUsername());
+                rankingService.recordWin(winner.getPlayer());
+                for (GamePlayer p : allPlayers) {
+                    if (!p.getPlayer().getId().equals(winner.getPlayer().getId())) {
+                        rankingService.recordLoss(p.getPlayer());
+                    }
+                }
+                gameRepo.save(game);
+            }
+            return;
+        }
+
+        // Si c'était le tour du joueur déconnecté, passer au suivant
+        if (game.getCurrentPlayer() != null && game.getCurrentPlayer().getId().equals(playerId)) {
+
+            List<GamePlayer> connected = allPlayers.stream().filter(GamePlayer::isConnected).collect(java.util.stream.Collectors.toList());
+
+            int currentIndex = getCurrentPlayerIndex(connected, player);
+            // Si introuvable (déjà retiré), prendre le premier connecté
+            if (currentIndex < 0) currentIndex = 0;
+            int nextIndex = (currentIndex + 1) % connected.size();
+
+            game.setCurrentPlayer(connected.get(nextIndex).getPlayer());
+            gameRepo.save(game);
+        }
     }
 
     // créer une nouvelle partie
@@ -170,8 +218,11 @@ public class GameService {
         card.setDiscard(true);
         cardRepo.save(card);
 
-        List<GamePlayer> players = gamePlayerRepo.findByGame(game);
+        List<GamePlayer> players = gamePlayerRepo.findByGame(game).stream().filter(GamePlayer::isConnected).collect(java.util.stream.Collectors.toList());
         int currentIndex = getCurrentPlayerIndex(players, player);
+        if (currentIndex < 0) {
+            throw new RuntimeException("Joueur introuvable dans la partie");
+        }
         int nextIndex = getNextIndex(game, players, currentIndex);
 
         // appliquer les effets de la carte
@@ -298,7 +349,7 @@ public class GameService {
         for (int i = 0; i < players.size(); i++) {
             if (players.get(i).getPlayer().getId().equals(player.getId())) return i;
         }
-        return 0;
+        return -1;
     }
 
     // calculer l'index du joueur suivant selon la direction

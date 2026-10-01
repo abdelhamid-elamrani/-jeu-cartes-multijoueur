@@ -131,17 +131,36 @@ export default function GamePage({ gameId, player, onLeave, onLogout }) {
                         </div>
                     )}
 
-                    {/* ADVERSAIRES */}
-                    {gameState?.opponents && (
+                    {/* JOUEURS EN ATTENTE (avant démarrage) */}
+                    {!started && gameState?.players && (
                         <div style={styles.opponents}>
-                            {gameState.opponents.map((op, i) => (
-                                <div key={i} style={styles.opponentCard}>
-                                    <span style={styles.opponentName}>{op.username}</span>
-                                    <span style={styles.opponentCards}>
-                                        🃏 {op.handSize} cartes
-                                    </span>
-                                </div>
-                            ))}
+                            {gameState.players
+                                .filter(p => p.connected !== false)
+                                .map((p, i) => (
+                                    <div key={i} style={styles.opponentCard}>
+                                        <span style={styles.opponentName}>
+                                            {p.username}
+                                            {p.username === player.username ? " (vous)" : ""}
+                                        </span>
+                                        <span style={styles.opponentCards}>En attente...</span>
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    )}
+
+                    {/* ADVERSAIRES EN JEU (après démarrage) */}
+                    {started && gameState?.opponents && (
+                        <div style={styles.opponents}>
+                            {gameState.opponents
+                                .filter(op => op.connected !== false)
+                                .map((op, i) => (
+                                    <div key={i} style={styles.opponentCard}>
+                                        <span style={styles.opponentName}>{op.username}</span>
+                                        <span style={styles.opponentCards}>🃏 {op.handSize} cartes</span>
+                                    </div>
+                                ))
+                            }
                         </div>
                     )}
 

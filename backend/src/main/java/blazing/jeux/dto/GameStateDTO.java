@@ -17,6 +17,7 @@ public class GameStateDTO {
     private List<CardDTO> hand;
     private CardDTO topCard;
     private List<OpponentDTO> opponents;
+    private List<PlayerLobbyDTO> players;
     private String winner;
 
     public GameStateDTO() {}
@@ -36,16 +37,25 @@ public class GameStateDTO {
         this.topCard = topCard != null ? new CardDTO(topCard) : null;
 
         // adversaires avec leur nombre de cartes
-       List<OpponentDTO> opponents = new ArrayList<>();
+        // Opponents (tous sauf soi-même) avec connected
+        List<OpponentDTO> opponents = new ArrayList<>();
         for (GamePlayer gp : allPlayers) {
             if (!gp.getId().equals(currentGP.getId())) {
                 opponents.add(new OpponentDTO(
                     gp.getPlayer().getUsername(),
-                    gp.getHandSize()
+                    gp.getHandSize(),
+                    gp.isConnected()
                 ));
             }
         }
         this.opponents = opponents;
+
+        // Tous les joueurs pour l'affichage en WAITING
+        List<PlayerLobbyDTO> players = new ArrayList<>();
+        for (GamePlayer gp : allPlayers) {
+            players.add(new PlayerLobbyDTO(gp.getPlayer().getUsername(), gp.isConnected()));
+        }
+        this.players = players;
         this.winner = game.getWinner();
     }
 
@@ -121,15 +131,25 @@ public class GameStateDTO {
         this.winner = winner; 
     }
 
+    public List<PlayerLobbyDTO> getPlayers() { 
+        return players; 
+    }
+
+    public void setPlayers(List<PlayerLobbyDTO> players) { 
+        this.players = players; 
+    }
+
     public static class OpponentDTO {
         private String username;
         private int handSize;
+        private boolean connected;
 
         public OpponentDTO() {}
 
-        public OpponentDTO(String username, int handSize) {
+        public OpponentDTO(String username, int handSize, boolean connected) {
             this.username = username;
             this.handSize = handSize;
+            this.connected = connected;
         }
 
         public String getUsername() { 
@@ -146,6 +166,42 @@ public class GameStateDTO {
 
         public void setHandSize(int handSize) { 
             this.handSize = handSize; 
+        }
+
+        public boolean isConnected() {
+             return connected; 
+        }
+
+        public void setConnected(boolean connected) { 
+            this.connected = connected; 
+        }
+    }
+
+    public static class PlayerLobbyDTO {
+        private String username;
+        private boolean connected;
+
+        public PlayerLobbyDTO() {}
+
+        public PlayerLobbyDTO(String username, boolean connected) {
+            this.username = username;
+            this.connected = connected;
+        }
+
+        public String getUsername() { 
+            return username; 
+        }
+
+        public void setUsername(String username) { 
+            this.username = username; 
+        }
+
+        public boolean isConnected() { 
+            return connected; 
+        }
+
+        public void setConnected(boolean connected) { 
+            this.connected = connected; 
         }
     }
 }
